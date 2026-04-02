@@ -1,0 +1,138 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Security Gateway SDK Documentation",
+    "version": "1.0.0",
+    "description": "Unified Swagger API Documentation for all Microservices"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7001",
+      "description": "Auth Service (Port 7001)"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Proxy Service (Port 3000) - TBD"
+    },
+    {
+      "url": "http://localhost:4000",
+      "description": "Enclave Service (Port 4000) - TBD"
+    },
+    {
+      "url": "http://localhost:5000",
+      "description": "Audit Service (Port 5000) - TBD"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/users/register": {
+      "post": {
+        "summary": "Register a new user",
+        "description": "Creates a new user in the Auth service.",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "admin_user"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "securepassword123"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": ["admin", "analyst", "reader", "operator"],
+                    "example": "admin",
+                    "description": "User access level role"
+                  }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully"
+          },
+          "400": {
+            "description": "Validation error or missing fields"
+          },
+          "409": {
+            "description": "Username already exists"
+          }
+        }
+      }
+    },
+    "/api/v1/users/login": {
+      "post": {
+        "summary": "Login a user",
+        "description": "Authenticates a user and returns a JWT token.",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "admin_user"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "securepassword123"
+                  }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "summary": "Get Current User Details",
+        "description": "Fetches details of the currently authenticated user based on the JWT token.",
+        "tags": ["Auth"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details successfully returned"
+          },
+          "401": {
+            "description": "Unauthorized access or missing token"
+          }
+        }
+      }
+    }
+  }
+}
