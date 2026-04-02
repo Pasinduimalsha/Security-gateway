@@ -1,6 +1,7 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { createSecurityMiddleware } = require('./middleware/security');
+const { createMLSMiddleware } = require('./middleware/mls'); // <--- Import MLS Engine
 
 /**
  * Universal Security Gateway Library (Publishable SDK)
@@ -34,13 +35,22 @@ function SecurityGateway(options) {
             // Chain middlewares dynamically depending on if route is protected
             const middlewares = [];
             if (route.protected) {
+                // Step 1: Extract and verify JWT
                 middlewares.push(verifyToken);
+                
+                // Step 2: Inject Bell-LaPadula rules if clearance is specified for the route!
+                if (route.requiredClearance) {
+                    middlewares.push(createMLSMiddleware(route.requiredClearance));
+                    // middlewares.push('S');
+                }
             }
+            
+            // Step 3: Physically Forward the Request
             middlewares.push(createProxyMiddleware(proxyConfig));
 
             router.use(route.path, ...middlewares);
             
-            console.log(`[SecurityGateway] Shield mounted: ${route.path} -> ${route.target} (Protected: ${!!route.protected})`);
+            console.log(`[SecurityGateway] Shield mounted: ${route.path} -> ${route.target} (Protected: ${!!route.protected}, MLS: ${route.requiredClearance || 'None'})`);
         });
     }
 
@@ -49,5 +59,6 @@ function SecurityGateway(options) {
 
 module.exports = {
     SecurityGateway,
-    createSecurityMiddleware // Exported so clients like Enclave can secure their own direct networks!
+    createSecurityMiddleware,
+    createMLSMiddleware
 };

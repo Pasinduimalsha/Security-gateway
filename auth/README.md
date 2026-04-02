@@ -57,3 +57,13 @@ Forces the Auth Backend to make a direct backend-to-backend request to the secur
 curl -X GET http://localhost:7000/api/v1/users/test-enclave \
   -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
 ```
+
+### 5. Test Bell-LaPadula MLS Rules
+Forces the Auth Backend to test whether the mathematical Enclave clearance requirements securely block or allow different token payloads. The Enclave requires Secret (`S`) clearance. 
+
+```bash
+# Try it with an Admin token (Unclassified) and see it get blocked!
+# Then try it with an Operator token (Secret) and see it grant access!
+curl -X GET http://localhost:7000/api/v1/users/test-mls \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```

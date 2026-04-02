@@ -15,4 +15,7 @@ router.get('/me', authMiddleware, UserController.getMe);
 // Force Client Backend to ping Enclave directly to test connectivity
 router.get('/test-enclave', UserController.checkEnclaveAccess);
 
+// Force Client Backend to verify Bell-LaPadula functionality on targeted services
+router.get('/test-mls', UserController.simulateMls);
+
 module.exports = router;
