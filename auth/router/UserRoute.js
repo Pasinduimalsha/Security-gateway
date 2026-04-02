@@ -12,4 +12,7 @@ router.post('/login', UserController.login);
 // Get current user details from Token
 router.get('/me', authMiddleware, UserController.getMe);
 
+// Force Client Backend to ping Enclave directly to test connectivity
+router.get('/test-enclave', UserController.checkEnclaveAccess);
+
 module.exports = router;

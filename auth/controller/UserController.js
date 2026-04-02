@@ -104,9 +104,45 @@ const getMe = (req, res) => {
     // authMiddleware already verified the token and appended the decoded payload to req.user
     res.json(req.user);
 };
- 
+
+// Tests accessibility of the Enclave service from the Client Backend directly!
+const checkEnclaveAccess = async (req, res) => {
+    const token = req.headers.authorization;
+    if (!token) {
+        return res.status(401).json({ error: "Missing Bearer token to forward to Enclave" });
+    }
+
+    try {
+        console.log('[Auth Backend] Calling Enclave directly to test access...');
+        const response = await fetch('http://localhost:4000/', {
+            method: 'GET',
+            headers: {
+                'Authorization': token // Pass the token!
+            }
+        });
+        
+        let data;
+        try {
+            data = await response.json();
+        } catch(e) {
+            data = "Could not parse JSON response";
+        }
+
+        return res.status(response.status).json({ 
+            success: response.ok, 
+            enclave_http_status: response.status, 
+            enclave_response: data 
+        });
+
+    } catch (error) {
+        console.error('[Auth Backend] Failed to reach Enclave:', error);
+        return res.status(500).json({ error: "Failed to reach enclave over the network" });
+    }
+}
+
 module.exports = {
     register, 
     login,
-    getMe
+    getMe,
+    checkEnclaveAccess
 };

@@ -11,6 +11,7 @@ app.use(bodyParse.urlencoded({ extended: true }));
 app.use(bodyParse.json());
 
 const UserRoute = require('./router/UserRoute');
+const { SecurityGateway } = require('../proxy'); // <--- Import our new Gateway Library!
 
 // Database connection
 const PORT = process.env.AUTH_PORT || 7000;
@@ -36,4 +37,11 @@ app.get('/test', (req, res) => {
   return res.send({'message': 'API is working'});
 });
 
-app.use('/api/v1', UserRoute);
+app.use('/api/v1/users', UserRoute);
+
+app.use('/api', SecurityGateway({
+    jwtSecret: process.env.JWT_SECRET,
+    authTarget: `http://localhost:${PORT}`, // It proxies auth traffic to itself!
+    enclaveTarget: `http://localhost:${process.env.ENCLAVE_PORT || 4000}`,
+    auditTarget: `http://localhost:${process.env.AUDIT_PORT || 5000}`
+}));
