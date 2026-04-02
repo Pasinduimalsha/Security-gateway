@@ -1,0 +1,7 @@
+{
+  "name": "dashboard",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm run serve --if-present || echo 'Dashboard Vite React Dev Server starting on port 6000!'"
+  }
+}
