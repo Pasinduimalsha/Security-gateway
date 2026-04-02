@@ -7,10 +7,11 @@ const JWT_EXPIRES = process.env.JWT_EXPIRES || '1h';
 
 // Role Definitions provided
 const roleDefinitions = {
-    admin: { resources: ['*'], actions: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], mlsMin: 'U' },
+    admin: { resources: ['*'], actions: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], mlsMin: 'TS' },
     analyst: { resources: ['/data/*', '/reports/*'], actions: ['GET', 'POST'], mlsMin: 'C' },
     reader: { resources: ['/data/*', '/reports/*', '/public/*'], actions: ['GET'], mlsMin: 'U' },
-    operator: { resources: ['/exec/*', '/jobs/*'], actions: ['GET', 'POST'], mlsMin: 'S' }
+    operator: { resources: ['/exec/*', '/jobs/*'], actions: ['GET', 'POST'], mlsMin: 'S' },
+    commander: { resources: ['*'], actions: ['GET', 'POST', 'PUT', 'DELETE'], mlsMin: 'TS' }
 };
 
 const register = async (req, res) => {
@@ -140,9 +141,38 @@ const checkEnclaveAccess = async (req, res) => {
     }
 }
 
+// NEW METHOD: Formally verify the Bell-LaPadula clearance!
+const simulateMls = async (req, res) => {
+    const token = req.headers.authorization;
+    if (!token) return res.status(401).json({ error: "Missing Bearer token" });
+
+    try {
+        console.log('[Auth Service / Client] Ping Enclave to test BLP Compliance...');
+        // Hitting the targeted enclave directly. Enclave is armed with its own MLS shield from the SDK
+        const response = await fetch('http://localhost:4000/', {
+            method: 'GET',
+            headers: { 'Authorization': token }
+        });
+        
+        const data = await response.json();
+        
+        const isBellLaPadulaBlocked = response.status === 403;
+        
+        return res.status(response.status).json({ 
+            test_passed: response.ok, 
+            status_code: response.status, 
+            mls_result: isBellLaPadulaBlocked ? 'BLOCKED BY BELL-LAPADULA!' : 'ACCESS GRANTED',
+            details: data 
+        });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+}
+ 
 module.exports = {
     register, 
     login,
     getMe,
-    checkEnclaveAccess
+    checkEnclaveAccess,
+    simulateMls
 };
