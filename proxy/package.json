@@ -2,6 +2,13 @@
   "name": "proxy",
   "version": "1.0.0",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "echo 'Proxy is an SDK library and cannot be run directly. Import it into your own server script.' && exit 0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5",
+    "jsonwebtoken": "^9.0.3"
   }
 }

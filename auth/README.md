@@ -45,6 +45,15 @@ Used to decode and verify a token.
 
 ```bash
 # Replace YOUR_JWT_TOKEN_HERE with the token from the login response
-curl -X GET http://localhost:7000/auth/me \
+curl -X GET http://localhost:7000/api/v1/users/me \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 4. Test Enclave Inter-Service Connectivity
+Forces the Auth Backend to make a direct backend-to-backend request to the secured Enclave service using your provided JWT Token to prove it can reach it.
+
+```bash
+# Replace YOUR_JWT_TOKEN_HERE with the token from the login response
+curl -X GET http://localhost:7000/api/v1/users/test-enclave \
   -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
 ```
