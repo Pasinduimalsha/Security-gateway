@@ -1,0 +1,18 @@
+[
+    { 
+        "path": "/auth", 
+        "target": "http://localhost:7001/api/v1/users", 
+        "protected": false 
+    },
+    { 
+        "path": "/enclave", 
+        "target": "http://localhost:4000", 
+        "protected": true, 
+        "requiredClearance": "TS", 
+        "useSecureChannel": true,
+        "actionName": "SECURE_TEE_EXECUTION",
+        "auditUrl": "http://localhost:5001",
+        "mrenclave": "simulated_mrenclave_hash_12345",
+        "blsPrivateKey": "simulated_bls_private_key_99999"
+    }
+]

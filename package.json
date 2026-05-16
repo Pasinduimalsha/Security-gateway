@@ -6,17 +6,17 @@
     "proxy",
     "enclave",
     "audit",
-    "dashboard",
-    "auth"
+    "auth",
+    "dashboard"
   ],
   "scripts": {
     "install:all": "npm install",
-    "dev": "concurrently -c \"cyan.bold,magenta.bold,yellow.bold,green.bold,blue.bold,white.bold\" -n \"PROXY,ENCLAVE,AUDIT,DASH,AUTH,DOCS\" \"npm run dev -w proxy\" \"npm run dev -w enclave\" \"npm run dev -w audit\" \"npm run dev -w dashboard\" \"npm run dev -w auth\" \"npm run dev:docs\"",
+    "dev": "concurrently -c \"cyan.bold,magenta.bold,yellow.bold,green.bold,blue.bold,red.bold,white.bold\" -n \"PROXY,ENCLAVE,AUDIT,AUTH,DASHBOARD,DOCS\" \"npm run dev -w proxy\" \"npm run dev -w enclave\" \"npm run dev -w audit\" \"npm run dev -w auth\" \"npm run dev -w dashboard\" \"npm run dev:docs\"",
     "dev:proxy": "npm run dev -w proxy",
     "dev:enclave": "npm run dev -w enclave",
     "dev:audit": "npm run dev -w audit",
-    "dev:dashboard": "npm run dev -w dashboard",
     "dev:auth": "npm run dev -w auth",
+    "dev:dashboard": "npm run dev -w dashboard",
     "dev:docs": "nodemon swagger-server.js",
     "test": "node tests/integration.test.js"
   },

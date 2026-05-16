@@ -11,7 +11,7 @@ app.use(bodyParse.urlencoded({ extended: true }));
 app.use(bodyParse.json());
 
 const UserRoute = require('./router/UserRoute');
-const { SecurityGateway } = require('../proxy'); // <--- Import our new Gateway Library!
+const { SecurityGateway } = require('../config/sdk-resolver');
 
 // Database connection
 const PORT = process.env.AUTH_PORT || 7000;
@@ -24,7 +24,7 @@ mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('Connected to MongoDB');
   })
-  .catch((err) => { 
+  .catch((err) => {
     console.error('Failed to connect to MongoDB', err);
   });
 
@@ -34,14 +34,22 @@ app.listen(PORT, () => {
 
 // Sample route
 app.get('/test', (req, res) => {
-  return res.send({'message': 'API is working'});
+  return res.send({ 'message': 'API is working' });
 });
 
 app.use('/api/v1/users', UserRoute);
 
+const config = require('../config');
+
 app.use('/api', SecurityGateway({
-    jwtSecret: process.env.JWT_SECRET,
-    authTarget: `http://localhost:${PORT}`, // It proxies auth traffic to itself!
-    enclaveTarget: `http://localhost:${process.env.ENCLAVE_PORT || 4000}`,
-    auditTarget: `http://localhost:${process.env.AUDIT_PORT || 5000}`
+  jwtSecret: process.env.JWT_SECRET,
+  auditTarget: `http://localhost:${process.env.AUDIT_PORT || 5000}`,
+  rbacPolicies: config.rbac.policies,
+  mlsLattice: config.mls.lattice,
+  enclave: { mrenclave: config.enclave.mrenclave },
+  bls: { privateKey: config.bls.privateKey },
+  routes: [
+    { path: '/auth', target: `http://localhost:${PORT}/api/v1/users`, protected: false },
+    { path: '/enclave', target: `http://localhost:${process.env.ENCLAVE_PORT || 4000}`, protected: true, requiredClearance: 'S', useSecureChannel: true }
+  ]
 }));

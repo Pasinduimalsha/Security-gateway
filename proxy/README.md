@@ -21,9 +21,9 @@ const app = express();
 // Mount the Security Gateway to any route string (e.g. /api)
 app.use('/api', SecurityGateway({
     jwtSecret: 'process.env.MY_SECRET', // Required: For verifying tokens
-    authTarget: 'http://localhost:7001', // Your custom configured Auth backend
-    enclaveTarget: 'http://localhost:4000', // Your Enclave
-    auditTarget: 'http://localhost:5000' 
+    authTarget: 'http://<auth-host>:<port>', 
+    enclaveTarget: 'http://<enclave-host>:<port>', 
+    auditTarget: 'http://<audit-host>:<port>' 
 }));
 
 app.listen(3000, () => {

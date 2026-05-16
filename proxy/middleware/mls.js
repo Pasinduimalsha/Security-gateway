@@ -3,15 +3,16 @@
  * Implements Bell-LaPadula Lattice logic for the SDK.
  */
 
-const LATTICE = {
+const DEFAULT_LATTICE = {
     'U': 10, // Unclassified
     'C': 20, // Confidential
     'S': 30, // Secret
     'TS': 40 // Top Secret
 };
 
-function createMLSMiddleware(routeRequiredClearance) {
-    const routeLevel = LATTICE[routeRequiredClearance?.toUpperCase()];
+function createMLSMiddleware(routeRequiredClearance, customLattice) {
+    const lattice = customLattice || DEFAULT_LATTICE;
+    const routeLevel = lattice[routeRequiredClearance?.toUpperCase()];
 
     if (!routeLevel) {
         throw new Error(`[MLS Engine] Fatal: Invalid clearance level provided: ${routeRequiredClearance}. Must be U, C, S, or TS.`);
@@ -24,7 +25,7 @@ function createMLSMiddleware(routeRequiredClearance) {
             return res.status(403).json({ error: 'MLS Blocked: User clearance level is not defined.' });
         }
 
-        const userLevel = LATTICE[req.user.clearance.toUpperCase()];
+        const userLevel = lattice[req.user.clearance.toUpperCase()];
         if (!userLevel) {
             return res.status(403).json({ error: `MLS Blocked: Unknown user clearance header '${req.user.clearance}'` });
         }

@@ -1,8 +1,8 @@
 {
-  "name": "proxy",
-  "version": "1.0.0",
+  "name": "secure-gateway-sdk",
+  "version": "1.0.1",
   "scripts": {
-    "dev": "echo 'Proxy is an SDK library and cannot be run directly. Import it into your own server script.' && exit 0"
+    "dev": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -10,5 +10,14 @@
     "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5",
     "jsonwebtoken": "^9.0.3"
-  }
+  },
+  "description": "This package is a drop-in API Gateway library designed to secure and route traffic to a microservice ecosystem containing Auth, Enclave, and Audit endpoints.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }

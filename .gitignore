@@ -1,3 +1,7 @@
+# Monorepo Dependencies
+node_modules/
+**/node_modules/
+
 # Logs
 logs
 *.log
@@ -6,25 +10,19 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Dependencies
-node_modules/
-jspm_packages/
-
 # Environment Variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
-# Build directories
+# Build & Tooling
 dist/
 build/
 out/
-
-# Database files
-*.sqlite
-*.sqlite3
+.next/
+.venv/
+.gemini/
+.github/
 
 # OS files
 .DS_Store
@@ -43,3 +41,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Project Specific
+SecurityGateway_ImplementationGuide.pdf
+*.local

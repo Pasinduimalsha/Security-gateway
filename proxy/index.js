@@ -1,15 +1,11 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { createSecurityMiddleware } = require('./middleware/security');
-const { createMLSMiddleware } = require('./middleware/mls'); // <--- Import MLS Engine
+const { createMLSMiddleware } = require('./middleware/mls');
+const { createRBACMiddleware } = require('./middleware/rbac');
 
 /**
  * Universal Security Gateway Library (Publishable SDK)
- * Dynamic configuration for securing any microservice architecture.
- *
- * @param {Object} options Configuration Object
- * @param {string} options.jwtSecret The verification secret for Tokens
- * @param {Array} options.routes Array defining paths, targets, and protection logic
  */
 function SecurityGateway(options) {
     const router = express.Router();
@@ -19,46 +15,94 @@ function SecurityGateway(options) {
     }
 
     const verifyToken = createSecurityMiddleware(options.jwtSecret);
+    const rbacMiddleware = createRBACMiddleware(options.rbacPolicies);
+    const enclaveClients = new Map(); // Cache to maintain persistent secure sessions
+    const blsAuditInstances = new Map(); // Cache to maintain aggregate signatures per route
 
     if (options.routes && Array.isArray(options.routes)) {
         options.routes.forEach(route => {
-            const proxyConfig = {
-                target: route.target,
-                changeOrigin: true
-            };
-
-            // Custom rewrite rules provided by the implementing developer
-            if (route.pathRewrite) {
-                proxyConfig.pathRewrite = route.pathRewrite;
-            }
-
-            // Chain middlewares dynamically depending on if route is protected
             const middlewares = [];
+
             if (route.protected) {
-                // Step 1: Extract and verify JWT
                 middlewares.push(verifyToken);
-                
-                // Step 2: Inject Bell-LaPadula rules if clearance is specified for the route!
+                middlewares.push(rbacMiddleware);
                 if (route.requiredClearance) {
-                    middlewares.push(createMLSMiddleware(route.requiredClearance));
-                    // middlewares.push('S');
+                    middlewares.push(createMLSMiddleware(route.requiredClearance, options.mlsLattice));
                 }
             }
-            
-            // Step 3: Physically Forward the Request
-            middlewares.push(createProxyMiddleware(proxyConfig));
+
+            if (route.useSecureChannel) {
+                const EnclaveClient = require('./lib/enclave-client');
+                const BLSAuditSim = require('./lib/bls');
+                
+                // Get or Create a persistent client for this specific target
+                if (!enclaveClients.has(route.target)) {
+                    enclaveClients.set(route.target, new EnclaveClient(route.target, route.mrenclave));
+                }
+                const enclaveClient = enclaveClients.get(route.target);
+
+                // Get or Create a persistent BLS instance to maintain aggregate signatures
+                if (!blsAuditInstances.has(route.path)) {
+                    blsAuditInstances.set(route.path, new BLSAuditSim(route.blsPrivateKey));
+                }
+                const blsAudit = blsAuditInstances.get(route.path);
+
+                middlewares.push(express.json());
+                middlewares.push(async (req, res) => {
+                    try {
+                        const payload = req.body && Object.keys(req.body).length > 0 ? req.body : { action: "read_data" };
+                        const token = req.headers['authorization']?.split(' ')[1];
+
+                        const result = await enclaveClient.execute(payload, token);
+
+                        const logEntry = {
+                            timestamp: new Date().toISOString(),
+                            user: req.user?.username || req.user?.sub || 'anonymous',
+                            clearance: req.user?.clearance || 'N/A',
+                            action: route.actionName || 'gateway_access',
+                            resource: route.path,
+                            status: 'SUCCESS'
+                        };
+                        
+                        const sigData = blsAudit.signAndAggregate(logEntry);
+                        Object.assign(logEntry, sigData);
+
+                        // Audit target is now also route-specific!
+                        if (route.auditUrl) {
+                            fetch(route.auditUrl + '/log', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(logEntry)
+                            }).catch(() => {});
+                        }
+
+                        res.json(result);
+                    } catch (error) {
+                        res.status(500).json({ error: error.message });
+                    }
+                });
+            } else {
+                const proxyConfig = {
+                    target: route.target,
+                    changeOrigin: true
+                };
+                if (route.pathRewrite) proxyConfig.pathRewrite = route.pathRewrite;
+                middlewares.push(createProxyMiddleware(proxyConfig));
+            }
 
             router.use(route.path, ...middlewares);
-            
-            console.log(`[SecurityGateway] Shield mounted: ${route.path} -> ${route.target} (Protected: ${!!route.protected}, MLS: ${route.requiredClearance || 'None'})`);
+            console.log(`[SecurityGateway] Shield mounted: ${route.path} -> ${route.target}`);
         });
     }
 
     return router;
 }
 
+const { SecureChannel } = require('./lib/crypto');
+
 module.exports = {
     SecurityGateway,
     createSecurityMiddleware,
-    createMLSMiddleware
+    createMLSMiddleware,
+    SecureChannel
 };

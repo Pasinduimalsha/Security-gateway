@@ -5,8 +5,8 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { 
         type: String, 
-        enum: ['admin', 'analyst', 'reader', 'operator'], 
-        default: 'reader' 
+        enum: ['admin', 'user', 'guest'], 
+        default: 'user' 
     },
     clearanceLevel: { 
         type: String, 

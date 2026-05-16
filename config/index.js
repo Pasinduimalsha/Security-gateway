@@ -2,7 +2,7 @@ module.exports = {
   ports: {
     proxy: 3000,
     enclave: 4000,
-    audit: 5000,
+    audit: 5001,
     dashboard: 6000
   },
   jwt: {
@@ -10,14 +10,13 @@ module.exports = {
     expiresIn: '1h'
   },
   mls: {
-    levels: ['U', 'C', 'S', 'TS'] // U=lowest, TS=highest
+    lattice: { 'U': 10, 'C': 20, 'S': 30, 'TS': 40 }
   },
   rbac: {
     policies: {
-      admin: { resources: ['*'], actions: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], mlsMin: 'U' },
-      analyst: { resources: ['/data/*', '/reports/*'], actions: ['GET', 'POST'], mlsMin: 'C' },
-      reader: { resources: ['/data/*', '/reports/*', '/public/*'], actions: ['GET'], mlsMin: 'U' },
-      operator: { resources: ['/exec/*', '/jobs/*'], actions: ['GET', 'POST'], mlsMin: 'S' }
+      admin: { resources: ['*'], actions: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], mlsMin: 'TS' },
+      user: { resources: ['/data/*', '/reports/*'], actions: ['GET', 'POST'], mlsMin: 'S' },
+      guest: { resources: ['/public/*'], actions: ['GET'], mlsMin: 'U' }
     }
   },
   enclave: {

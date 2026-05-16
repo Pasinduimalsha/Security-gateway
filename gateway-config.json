@@ -1,0 +1,26 @@
+{
+  "routes": [
+    { 
+        "path": "/auth", 
+        "target": "http://localhost:7001/api/v1/users", 
+        "protected": false 
+    },
+    { 
+        "path": "/enclave", 
+        "target": "http://localhost:4000", 
+        "protected": true, 
+        "requiredClearance": "TS", 
+        "useSecureChannel": true,
+        "actionName": "SECURE_TEE_EXECUTION",
+        "auditUrl": "http://localhost:5001",
+        "mrenclave": "simulated_mrenclave_hash_12345",
+        "blsPrivateKey": "simulated_bls_private_key_99999"
+    }
+  ],
+  "rbacPolicies": {
+    "admin": { "resources": ["*"], "actions": ["GET", "POST", "PUT", "DELETE", "PATCH"], "mlsMin": "TS" },
+    "user": { "resources": ["/data/*", "/reports/*"], "actions": ["GET", "POST"], "mlsMin": "S" },
+    "guest": { "resources": ["/public/*"], "actions": ["GET"], "mlsMin": "U" }
+  },
+  "mlsLattice": { "U": 10, "C": 20, "S": 30, "TS": 40 }
+}

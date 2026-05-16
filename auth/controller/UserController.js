@@ -8,15 +8,13 @@ const JWT_EXPIRES = process.env.JWT_EXPIRES || '1h';
 // Role Definitions provided
 const roleDefinitions = {
     admin: { resources: ['*'], actions: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], mlsMin: 'TS' },
-    analyst: { resources: ['/data/*', '/reports/*'], actions: ['GET', 'POST'], mlsMin: 'C' },
-    reader: { resources: ['/data/*', '/reports/*', '/public/*'], actions: ['GET'], mlsMin: 'U' },
-    operator: { resources: ['/exec/*', '/jobs/*'], actions: ['GET', 'POST'], mlsMin: 'S' },
-    commander: { resources: ['*'], actions: ['GET', 'POST', 'PUT', 'DELETE'], mlsMin: 'TS' }
+    user: { resources: ['/data/*', '/reports/*'], actions: ['GET', 'POST'], mlsMin: 'S' },
+    guest: { resources: ['/public/*'], actions: ['GET'], mlsMin: 'U' }
 };
 
 const register = async (req, res) => {
     try {
-        const { username, password, role = 'reader' } = req.body;
+        const { username, password, role = 'guest' } = req.body;
 
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required' });

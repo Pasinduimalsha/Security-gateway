@@ -3,24 +3,20 @@
   "info": {
     "title": "Security Gateway SDK Documentation",
     "version": "1.0.0",
-    "description": "Unified Swagger API Documentation for all Microservices"
+    "description": "Unified Swagger API Documentation for the Bell-LaPadula based Security Gateway"
   },
   "servers": [
     {
+      "url": "http://localhost:3000",
+      "description": "Security Proxy (Main Gateway Port 3000)"
+    },
+    {
+      "url": "http://localhost:5001",
+      "description": "Audit Service (Port 5001)"
+    },
+    {
       "url": "http://localhost:7001",
       "description": "Auth Service (Port 7001)"
-    },
-    {
-      "url": "http://localhost:3000",
-      "description": "Proxy Service (Port 3000) - TBD"
-    },
-    {
-      "url": "http://localhost:4000",
-      "description": "Enclave Service (Port 4000) - TBD"
-    },
-    {
-      "url": "http://localhost:5000",
-      "description": "Audit Service (Port 5000) - TBD"
     }
   ],
   "components": {
@@ -33,11 +29,11 @@
     }
   },
   "paths": {
-    "/api/v1/users/register": {
+    "/api/auth/register": {
       "post": {
-        "summary": "Register a new user",
-        "description": "Creates a new user in the Auth service.",
-        "tags": ["Auth"],
+        "summary": "Register a new user (via Proxy)",
+        "description": "Registers a user. The request is proxied to the Auth service.",
+        "tags": ["Gateway"],
         "requestBody": {
           "required": true,
           "content": {
@@ -45,44 +41,23 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "username": {
-                    "type": "string",
-                    "example": "admin_user"
-                  },
-                  "password": {
-                    "type": "string",
-                    "example": "securepassword123"
-                  },
-                  "role": {
-                    "type": "string",
-                    "enum": ["admin", "analyst", "reader", "operator"],
-                    "example": "admin",
-                    "description": "User access level role"
-                  }
+                  "username": { "type": "string", "example": "pasindu" },
+                  "password": { "type": "string", "example": "password123" },
+                  "role": { "type": "string", "enum": ["admin", "analyst", "reader"], "example": "admin" }
                 },
                 "required": ["username", "password"]
               }
             }
           }
         },
-        "responses": {
-          "201": {
-            "description": "User registered successfully"
-          },
-          "400": {
-            "description": "Validation error or missing fields"
-          },
-          "409": {
-            "description": "Username already exists"
-          }
-        }
+        "responses": { "201": { "description": "Success" } }
       }
     },
-    "/api/v1/users/login": {
+    "/api/auth/login": {
       "post": {
-        "summary": "Login a user",
-        "description": "Authenticates a user and returns a JWT token.",
-        "tags": ["Auth"],
+        "summary": "Login a user (via Proxy)",
+        "description": "Authenticates and returns a JWT token.",
+        "tags": ["Gateway"],
         "requestBody": {
           "required": true,
           "content": {
@@ -90,47 +65,36 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "username": {
-                    "type": "string",
-                    "example": "admin_user"
-                  },
-                  "password": {
-                    "type": "string",
-                    "example": "securepassword123"
-                  }
-                },
-                "required": ["username", "password"]
+                  "username": { "type": "string", "example": "pasindu" },
+                  "password": { "type": "string", "example": "password123" }
+                }
               }
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "Successfully authenticated"
-          },
-          "401": {
-            "description": "Invalid credentials"
-          }
-        }
+        "responses": { "200": { "description": "JWT Token returned" } }
       }
     },
-    "/api/v1/users/me": {
+    "/api/enclave": {
       "get": {
-        "summary": "Get Current User Details",
-        "description": "Fetches details of the currently authenticated user based on the JWT token.",
-        "tags": ["Auth"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "summary": "Access Secure Enclave (via Proxy)",
+        "description": "Establishes ECDH secure channel and executes TEE logic. Requires Secret 'S' clearance.",
+        "tags": ["Gateway"],
+        "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": {
-            "description": "User details successfully returned"
-          },
-          "401": {
-            "description": "Unauthorized access or missing token"
-          }
+          "200": { "description": "Securely decrypted data from TEE" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden - MLS Access Denied" }
+        }
+      }
+    },
+    "/proof": {
+      "get": {
+        "summary": "Get BLS Aggregate Signature (Audit)",
+        "description": "Retrieves the mathematical non-repudiation proof for all gateway events.",
+        "tags": ["Audit"],
+        "responses": {
+          "200": { "description": "Aggregate signature hash" }
         }
       }
     }
