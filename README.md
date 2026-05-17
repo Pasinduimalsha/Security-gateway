@@ -1,85 +1,296 @@
 # Security Gateway SDK 🛡️
 
-A professional, project-agnostic Security Gateway middleware designed for microservices. It implements Multi-Level Security (MLS), Role-Based Access Control (RBAC), and cryptographically secure communication channels.
+A secure communication middleware between two untrusted parties over a network, implementing the full **CIA Triad**, **Authentication**, and **Non-Repudiation** using cryptographic protocols.
 
-## 🌟 Key Features
+> **Course Project** — IS4010: Information Security  
+> **Evaluation Week**: May 18, 2026
 
-- **MLS Engine**: Lattice-based Bell-LaPadula security model (No-Read-Up, No-Write-Down).
-- **RBAC Engine**: Dynamic, policy-driven role-based access control.
-- **Secure Channel**: ECDH key exchange with AES-256-GCM authenticated encryption.
-- **Non-Repudiation**: BLS12-381 Aggregate Signatures for immutable audit trails.
-- **TEE Simulation**: Simulated Trusted Execution Environment (Intel SGX / ARM CCA).
-- **Monitoring Dashboard**: Real-time React dashboard for log tracking and security verification.
+---
+
+## 🌟 Security Properties Achieved
+
+| Property | Mechanism | Status |
+|:---------|:----------|:-------|
+| **Confidentiality** | ECDH Key Exchange + AES-256-GCM Encryption | ✅ |
+| **Integrity** | AES-GCM Authentication Tags | ✅ |
+| **Availability** | Three-tier Rate Limiting & DDoS Protection | ✅ |
+| **Authentication** | JWT Tokens + Enclave Attestation (mrenclave) | ✅ |
+| **Non-Repudiation** | BLS12-381 Aggregate Signatures on Audit Logs | ✅ |
+| **Authorization** | Bell-LaPadula MLS (No-Read-Up, No-Write-Down) + RBAC | ✅ |
+
+---
 
 ## 🏗️ Architecture
 
-The project is structured as an NPM workspace monorepo:
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    Security Gateway (Proxy :3000)               │
+│                                                                │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │   JWT     │→ │   RBAC   │→ │Bell-     │→ │ ECDH + AES-   │  │
+│  │  Verify   │  │  Engine  │  │LaPadula  │  │ 256-GCM       │  │
+│  └──────────┘  └──────────┘  └──────────┘  └───────┬───────┘  │
+│       ↑              ↑             ↑                │          │
+│  Rate Limiter   Rate Limiter  Rate Limiter          │          │
+│  (Global)       (Auth)        (Sensitive)           │          │
+└─────────────────────────────────────────────────────┼──────────┘
+                                                      │
+              ┌───────────────────────────────────────┼──────┐
+              │                                       ▼      │
+   ┌──────────┴──┐    ┌──────────────┐    ┌─────────────────┐│
+   │ Auth :7001  │    │ Enclave :4000│    │  Audit :5001    ││
+   │ (MongoDB)   │    │ (TEE Sim)    │    │  (BLS Verify)   ││
+   └─────────────┘    └──────────────┘    └─────────────────┘│
+              │           Dashboard :6001 (React Monitor)     │
+              └───────────────────────────────────────────────┘
+```
 
-- `/proxy`: The core Security Gateway SDK (Project-agnostic).
-- `/auth`: Authentication service with JWT and User management.
-- `/enclave`: Simulated TEE backend for secure processing.
-- `/audit`: Immutable audit logging service.
-- `/dashboard`: React/Vite monitoring UI.
+The project uses an **npm workspace monorepo** with 5 microservices:
+
+| Service | Port | Purpose |
+|:--------|:-----|:--------|
+| **Proxy** | 3000 | Core Security Gateway — routes all traffic through security middleware |
+| **Enclave** | 4000 | Simulated Trusted Execution Environment (Intel SGX / ARM CCA) |
+| **Audit** | 5001 | Immutable audit log with BLS aggregate signature verification |
+| **Dashboard** | 6001 | React monitoring UI with attack simulation capabilities |
+| **Auth** | 7001 | User registration, login, JWT issuance (MongoDB) |
+| **Swagger Docs** | 8000 | Interactive API documentation |
+
+---
 
 ## 🚀 Getting Started
 
-### 1. Prerequisites
-- Node.js (v18+)
-- MongoDB (Optional, for Auth service)
+### Prerequisites
 
-### 2. Installation
-Install all dependencies for the monorepo:
+- **Node.js** v18 or higher
+- **MongoDB** running locally on port 27017
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/Pasinduimalsha/Security-gateway.git
+cd Security-gateway
+```
+
+### Step 2: Install Dependencies
+
 ```bash
 npm install
 ```
 
-### 3. Configuration
-Create a `.env` file in the root (see `.env.example`):
+### Step 3: Configure Environment
+
+Create a `.env` file in the project root:
+
 ```bash
 cp .env.example .env
 ```
 
-### 4. Running the Project
-Launch all microservices and the dashboard simultaneously:
+Or create it manually with these values:
+
+```env
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRES=1h
+
+# Port Configurations
+AUTH_PORT=7001
+PROXY_PORT=3000
+ENCLAVE_PORT=4000
+AUDIT_PORT=5001
+
+# Database
+MONGO_URI=mongodb://localhost:27017/security-gateway
+
+# Development Flags
+NODE_ENV=development
+USE_LOCAL_SDK=true
+
+# Security Parameters
+ENCLAVE_MRENCLAVE=simulated_mrenclave_hash_12345
+BLS_PRIVATE_KEY=simulated_bls_private_key_99999
+ENCLAVE_CLASSIFICATION=TS
+```
+
+### Step 4: Start MongoDB
+
+**Option A** — If MongoDB is installed locally:
+```bash
+mongod
+```
+
+**Option B** — Using Docker:
+```bash
+docker-compose up -d
+```
+
+### Step 5: Run the Project
+
+Launch all 6 services simultaneously:
+
 ```bash
 npm run dev
 ```
 
-- **Gateway**: [http://localhost:3000](http://localhost:3000)
-- **Dashboard**: [http://localhost:6001](http://localhost:6001)
-- **API Docs**: [http://localhost:8000/api-docs](http://localhost:8000/api-docs)
+You should see color-coded output for each service:
 
-## 🛡️ Security Properties
+```
+[PROXY]     Standalone Gateway running on port 3000
+[ENCLAVE]   Secured Service running on port 4000
+[AUDIT]     Service running on port 5001
+[AUTH]      Server is running on port 7001
+[DASHBOARD] VITE ready — http://localhost:6001/
+[DOCS]      Swagger UI — http://localhost:8000/api-docs
+```
 
-| Property | Mechanism |
-| :--- | :--- |
-| **Confidentiality** | ECDH Key Exchange + AES-256-GCM |
-| **Integrity** | AES-GCM Authentication Tags |
-| **Authentication** | JSON Web Tokens (JWT) |
-| **Authorization** | MLS (Bell-LaPadula) + RBAC |
-| **Non-Repudiation** | BLS Aggregate Signatures |
+### Step 6: Open the Dashboard
+
+Navigate to **[http://localhost:6001](http://localhost:6001)** in your browser.
+
+---
+
+## 🎮 Using the Dashboard
+
+The dashboard has **three tabs**:
+
+### Monitor Tab
+Real-time view of system health:
+- **Audit Proof** — Current BLS aggregate signature hash
+- **Integrity** — Chain verification status (PASSED/FAILED)
+- **Services** — Online/offline status of all 4 backend services
+- **Live Audit Logs** — Table of all gateway events with signature indices
+
+### Attack Simulator Tab
+8 pre-built scenarios to demonstrate every security property:
+
+| Category | Scenario | Tests |
+|:---------|:---------|:------|
+| **Normal** | Admin Access (TS Clearance) | Authentication, Confidentiality, Integrity |
+| **Normal** | Standard User Access (S Clearance) | Authentication, Authorization |
+| **Attack** | Bell-LaPadula Read-Up Attack | Authorization, Confidentiality |
+| **Attack** | JWT Token Forgery | Authentication |
+| **Attack** | Missing Authentication | Authentication |
+| **Attack** | Expired Token Replay | Authentication |
+| **Availability** | DDoS Flood Simulation | Availability |
+| **Availability** | Brute Force Login Attack | Availability, Authentication |
+
+### Console Tab
+Full terminal output showing step-by-step logs from every scenario execution.
+
+---
+
+## 🔐 Threat Model
+
+| Threat | Mitigation |
+|:-------|:-----------|
+| **Man-in-the-Middle** | ECDH + AES-256-GCM — attacker sees only ciphertext, cannot decrypt without ephemeral key |
+| **Token Forgery** | JWT signature verification — rejects tokens not signed by the Auth service secret |
+| **Data Spillage** | Bell-LaPadula No-Write-Down — TS users blocked from writing to U endpoints |
+| **Unauthorized Read** | Bell-LaPadula No-Read-Up — low clearance users blocked from high clearance data |
+| **Server Spoofing** | Enclave attestation — verifies mrenclave hash + HMAC quote before data exchange |
+| **Audit Tampering** | BLS aggregate signatures — deleting any log breaks the chain, detected by `/verify` |
+| **DDoS / Flooding** | Three-tier rate limiting — global (100/15min), auth (10/15min), sensitive (20/15min) |
+| **Brute Force** | Auth rate limiter — 10 login attempts per 15 minutes per IP |
+| **Replay Attack** | JWT expiration (1h) + unique random 12-byte IV per encryption |
+
+---
 
 ## 📦 SDK Usage (Standalone)
 
-The Gateway can be used as a standalone middleware in any Express app:
+The gateway can be used as a drop-in middleware in any Express application:
 
 ```javascript
-const { SecurityGateway } = require('./proxy');
+const { SecurityGateway } = require('secure-gateway-sdk');
 
 app.use('/api', SecurityGateway({
   jwtSecret: process.env.JWT_SECRET,
-  rbacPolicies: myPolicies,
-  mlsLattice: myLattice,
+  rbacPolicies: {
+    admin: { resources: ['*'], actions: ['GET','POST','PUT','DELETE'] },
+    guest: { resources: ['/public/*'], actions: ['GET'] }
+  },
+  mlsLattice: { 'U': 10, 'C': 20, 'S': 30, 'TS': 40 },
   routes: [
-    { 
-      path: '/secure-data', 
-      target: 'http://backend:4000', 
-      protected: true, 
-      requiredClearance: 'S' 
-    }
+    { path: '/public', target: 'http://backend:4000', protected: false },
+    { path: '/secure', target: 'http://backend:4000', protected: true, requiredClearance: 'S' }
   ]
 }));
 ```
 
+---
+
+## 🧪 API Quick Test (cURL)
+
+```bash
+# 1. Register an admin user
+curl -X POST http://localhost:7001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin1","password":"pass123","role":"admin"}'
+
+# 2. Login and get JWT token
+curl -X POST http://localhost:7001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin1","password":"pass123"}'
+
+# 3. Access the Enclave (paste your token)
+curl -X POST http://localhost:7001/api/enclave \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <YOUR_JWT_TOKEN>" \
+  -d '{"action":"SECURE_COMPUTE"}'
+
+# 4. Check audit logs
+curl http://localhost:5001/logs
+
+# 5. Verify audit integrity
+curl http://localhost:5001/verify
+```
+
+---
+
+## 📁 Project Structure
+
+```
+Security-gateway/
+├── package.json              # NPM workspace root
+├── gateway-config.json       # Proxy route definitions
+├── docker-compose.yml        # MongoDB container
+├── swagger.json              # OpenAPI 3.0 spec
+├── .env.example              # Environment template
+│
+├── proxy/                    # ★ Core Security Gateway SDK
+│   ├── index.js              # SecurityGateway() factory
+│   ├── server.js             # Standalone Express server
+│   ├── middleware/
+│   │   ├── security.js       # JWT verification
+│   │   ├── mls.js            # Bell-LaPadula enforcement
+│   │   ├── rbac.js           # Role-based access control
+│   │   └── rateLimit.js      # DDoS & rate limiting
+│   └── lib/
+│       ├── crypto.js         # ECDH + AES-256-GCM
+│       ├── enclave-client.js # TEE attestation + secure execution
+│       └── bls.js            # BLS aggregate signatures
+│
+├── auth/                     # Authentication Service
+│   ├── controller/UserController.js
+│   ├── middleware/AuthMiddleware.js
+│   ├── model/User.js
+│   └── router/UserRoute.js
+│
+├── enclave/                  # Simulated TEE Service
+│   └── index.js
+│
+├── audit/                    # Immutable Audit Service
+│   └── index.js
+│
+├── dashboard/                # React Monitoring UI
+│   └── src/App.jsx
+│
+└── config/                   # Shared Configuration
+    ├── index.js
+    └── sdk-resolver.js
+```
+
+---
+
 ## 📄 License
+
 MIT
