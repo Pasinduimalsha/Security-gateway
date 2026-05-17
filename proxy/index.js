@@ -3,6 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const { createSecurityMiddleware } = require('./middleware/security');
 const { createMLSMiddleware } = require('./middleware/mls');
 const { createRBACMiddleware } = require('./middleware/rbac');
+const { createGlobalRateLimit, createAuthRateLimit, createSensitiveRateLimit } = require('./middleware/rateLimit');
 
 /**
  * Universal Security Gateway Library (Publishable SDK)
@@ -14,6 +15,15 @@ function SecurityGateway(options) {
         throw new Error('[SecurityGateway] Fatal: "jwtSecret" must be provided in configuration options.');
     }
 
+    // --- Availability: Rate Limiting & DDoS Protection ---
+    const globalLimiter = createGlobalRateLimit(options.rateLimit?.global);
+    const authLimiter = createAuthRateLimit(options.rateLimit?.auth);
+    const sensitiveLimiter = createSensitiveRateLimit(options.rateLimit?.sensitive);
+
+    // Apply global rate limit to ALL requests through the gateway
+    router.use(globalLimiter);
+    console.log('[SecurityGateway] DDoS Protection: Global rate limiter active');
+
     const verifyToken = createSecurityMiddleware(options.jwtSecret);
     const rbacMiddleware = createRBACMiddleware(options.rbacPolicies);
     const enclaveClients = new Map(); // Cache to maintain persistent secure sessions
@@ -24,6 +34,8 @@ function SecurityGateway(options) {
             const middlewares = [];
 
             if (route.protected) {
+                // Stricter rate limit on sensitive/protected endpoints
+                middlewares.push(sensitiveLimiter);
                 middlewares.push(verifyToken);
                 middlewares.push(rbacMiddleware);
                 if (route.requiredClearance) {
@@ -82,6 +94,8 @@ function SecurityGateway(options) {
                     }
                 });
             } else {
+                // Auth endpoints get brute-force protection
+                middlewares.push(authLimiter);
                 const proxyConfig = {
                     target: route.target,
                     changeOrigin: true
@@ -104,5 +118,8 @@ module.exports = {
     SecurityGateway,
     createSecurityMiddleware,
     createMLSMiddleware,
-    SecureChannel
+    SecureChannel,
+    createGlobalRateLimit,
+    createAuthRateLimit,
+    createSensitiveRateLimit
 };

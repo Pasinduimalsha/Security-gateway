@@ -30,7 +30,11 @@ function createMLSMiddleware(routeRequiredClearance, customLattice) {
             return res.status(403).json({ error: `MLS Blocked: Unknown user clearance header '${req.user.clearance}'` });
         }
 
-        const isRead = ['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+        // Secure execution or TEE retrieval endpoints are functionally reads (requesting sensitive output)
+        const isRead = ['GET', 'HEAD', 'OPTIONS'].includes(req.method) || 
+                       req.path.includes('/enclave') || 
+                       req.path.includes('/execute') || 
+                       req.path.includes('/unseal');
         const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
 
         // ----------------------------------------------------

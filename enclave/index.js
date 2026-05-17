@@ -101,12 +101,10 @@ app.post('/execute', verifyToken, mlsShield, (req, res) => {
     }
 });
 
-app.get('/', verifyToken, mlsShield, (req, res) => {
-    console.log(`[Enclave] Direct or Proxied request authorized for User ${req.user.sub}`);
+app.get('/', (req, res) => {
     res.json({
         message: 'Successfully reached the Protected Enclave Service! 🔒',
-        authorized_user: req.user.sub,
-        role: req.user.role
+        status: 'ONLINE'
     });
 });
 

@@ -1,8 +1,17 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+
+// Robust workspace-aware dotenv loading
+if (fs.existsSync(path.join(process.cwd(), '.env'))) {
+    dotenv.config({ path: path.join(process.cwd(), '.env') });
+} else if (fs.existsSync(path.join(process.cwd(), '..', '.env'))) {
+    dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
+} else {
+    dotenv.config();
+}
+const express = require('express');
+const cors = require('cors');
 const { SecurityGateway } = require('./index');
 
 const app = express();
@@ -16,9 +25,17 @@ const PORT = process.env.PROXY_PORT || 3000;
  * It looks for a 'gateway-config.json' in the current working directory 
  * or a path specified by GATEWAY_CONFIG_PATH.
  */
-const configPath = process.env.GATEWAY_CONFIG_PATH 
+let configPath = process.env.GATEWAY_CONFIG_PATH 
     ? path.resolve(process.env.GATEWAY_CONFIG_PATH) 
     : path.join(process.cwd(), 'gateway-config.json');
+
+// Robust fallback: check parent directory if not found in current working directory
+if (!fs.existsSync(configPath)) {
+    const parentConfigPath = path.join(process.cwd(), '..', 'gateway-config.json');
+    if (fs.existsSync(parentConfigPath)) {
+        configPath = parentConfigPath;
+    }
+}
 
 let gatewayConfig = { routes: [], rbacPolicies: {}, mlsLattice: {} };
 
