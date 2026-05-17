@@ -72,7 +72,7 @@ function App() {
   const [scenarioResults, setScenarioResults] = useState({});
 
   const addLog = useCallback((text, type = '') => {
-    setTerminalOutput(prev => [{ text: `[${new Date().toLocaleTimeString()}] ${text}`, type, ts: Date.now() }, ...prev].slice(0, 80));
+    setTerminalOutput(prev => [{ text: `[${new Date().toLocaleTimeString()}] ${text}`, type, ts: Date.now() }, ...prev]);
   }, []);
 
   const checkServices = useCallback(async () => {
