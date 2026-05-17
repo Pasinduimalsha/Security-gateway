@@ -70,9 +70,10 @@ function App() {
   ]);
   const [running, setRunning] = useState(null);
   const [scenarioResults, setScenarioResults] = useState({});
+  const terminalRef = React.useRef(null);
 
   const addLog = useCallback((text, type = '') => {
-    setTerminalOutput(prev => [{ text: `[${new Date().toLocaleTimeString()}] ${text}`, type, ts: Date.now() }, ...prev]);
+    setTerminalOutput(prev => [...prev, { text: `[${new Date().toLocaleTimeString()}] ${text}`, type, ts: Date.now() }]);
   }, []);
 
   const checkServices = useCallback(async () => {
@@ -103,6 +104,12 @@ function App() {
     const i = setInterval(() => { checkServices(); fetchAuditData(); }, 5000);
     return () => clearInterval(i);
   }, [checkServices, fetchAuditData]);
+
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalOutput]);
 
   // ── Scenario Execution Engine ──
   const runScenario = async (scenario) => {
@@ -471,7 +478,7 @@ function App() {
               <span className="badge badge-info">{terminalOutput.length} entries</span>
               <button className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setTerminalOutput([{ text: 'Console cleared.', type: 'system' }])}>Clear</button>
             </div>
-            <div className="terminal" style={{ height: '500px' }}>
+            <div ref={terminalRef} className="terminal" style={{ height: '500px' }}>
               {terminalOutput.map((line, i) => (
                 <div key={i} className={`terminal-line ${line.type}`}>{line.text}</div>
               ))}
