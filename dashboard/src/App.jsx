@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Activity, Lock, Database, Terminal, CheckCircle2, RefreshCw, Eye, Zap, AlertTriangle, XCircle, Users, Cpu, FileWarning } from 'lucide-react';
 
-const API_AUDIT = 'http://localhost:5001';
-const API_PROXY = 'http://localhost:3000';
-const API_AUTH = 'http://localhost:7001';
+const API_AUDIT = import.meta.env.VITE_API_AUDIT;
+const API_PROXY = import.meta.env.VITE_API_PROXY;
+const API_AUTH = import.meta.env.VITE_API_AUTH;
+const API_ENCLAVE = import.meta.env.VITE_API_ENCLAVE;
 
 // ── Attack/Normal Scenario Definitions ──
 const SCENARIOS = [
@@ -71,7 +72,7 @@ function App() {
   const [scenarioResults, setScenarioResults] = useState({});
 
   const addLog = useCallback((text, type = '') => {
-    setTerminalOutput(prev => [{ text: `[${new Date().toLocaleTimeString()}] ${text}`, type, ts: Date.now() }, ...prev].slice(0, 80));
+    setTerminalOutput(prev => [{ text: `[${new Date().toLocaleTimeString()}] ${text}`, type, ts: Date.now() }, ...prev]);
   }, []);
 
   const checkServices = useCallback(async () => {
@@ -80,7 +81,7 @@ function App() {
       catch { return 'OFFLINE'; }
     };
     const [proxy, enclave, audit, auth] = await Promise.all([
-      check(API_PROXY, 'Proxy'), check('http://localhost:4000', 'Enclave'),
+      check(API_PROXY, 'Proxy'), check(API_ENCLAVE, 'Enclave'),
       check(API_AUDIT, 'Audit'), check(API_AUTH + '/test', 'Auth'),
     ]);
     setServiceStatus({ proxy, enclave, audit, auth });
