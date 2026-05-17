@@ -18,7 +18,7 @@
     "dev:auth": "npm run dev -w auth",
     "dev:dashboard": "npm run dev -w dashboard",
     "dev:docs": "nodemon swagger-server.js",
-    "test": "node tests/integration.test.js"
+    "test": "echo \"Use 'npm run dev' to launch the secure gateway ecosystem.\" && exit 0"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

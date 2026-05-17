@@ -258,6 +258,8 @@ body {
   padding: 1.25rem;
   transition: all 0.25s;
   cursor: default;
+  display: flex;
+  flex-direction: column;
 }
 
 .scenario-card:hover {
@@ -269,6 +271,18 @@ body {
 .scenario-card.attack { border-left: 3px solid var(--danger); }
 .scenario-card.normal { border-left: 3px solid var(--success); }
 .scenario-card.availability { border-left: 3px solid var(--warning); }
+.scenario-card.attack.violation-test {
+  border-left: 3px solid var(--danger);
+  background: rgba(239, 68, 68, 0.02);
+}
+.scenario-card.availability.violation-test {
+  border-left: 3px solid var(--warning);
+  background: rgba(245, 158, 11, 0.02);
+}
+.scenario-card.normal.violation-test {
+  border-left: 3px solid var(--warning);
+  background: rgba(245, 158, 11, 0.02);
+}
 
 .scenario-title {
   font-size: 0.95rem;

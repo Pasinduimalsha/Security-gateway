@@ -1,70 +1,101 @@
-# Security Gateway SDK - Proxy Library
+# Secure Gateway SDK - Proxy Library
 
-This package is a drop-in API Gateway library designed to secure and route traffic to a microservice ecosystem containing Auth, Enclave, and Audit endpoints. 
+This package is a modular API Gateway router library designed to secure and route traffic to a microservice ecosystem (Auth, Enclave, and Audit endpoints).
 
-It acts exclusively as an Express Middleware router.
+## 1. Installation
 
-## How to use this Library
+Install the package via the npm registry:
 
-As a third-party developer (Client), you will include this library inside your own backend express server to instantly spin up the Security Gateway shield over your logic.
-
-### 1. Installation
-Ensure you have the gateway folder available in your workspace (or published via NPM if deployed).
-
-### 2. Integration Example (Your main app)
-```javascript
-const express = require('express');
-const { SecurityGateway } = require('security-gateway-sdk/proxy');
-
-const app = express();
-
-// Mount the Security Gateway to any route string (e.g. /api)
-app.use('/api', SecurityGateway({
-    jwtSecret: 'process.env.MY_SECRET', // Required: For verifying tokens
-    authTarget: 'http://<auth-host>:<port>', 
-    enclaveTarget: 'http://<enclave-host>:<port>', 
-    auditTarget: 'http://<audit-host>:<port>' 
-}));
-
-app.listen(3000, () => {
-    console.log('Main Application running on port 3000');
-});
+```bash
+npm install secure-gateway-sdk
 ```
-
-### Routing Rules Under the Hood
-Once mounted (for example at `/api`), the library automatically protects traffic:
-* `POST /api/auth/register` -> Publicly proxies to `authTarget`
-* `GET /api/enclave/data` -> Instantly intercepted! Extracts JWT, validates against `jwtSecret`, and passes to `enclaveTarget` only if valid.
 
 ---
 
-## Testing (cURL Examples)
+## 2. Setup Requirements
 
-Since we mounted the `SecurityGateway` directly into the Auth service, the Gateway is currently running actively on `http://localhost:7001/api`. You can use these commands to test the integration:
+To use this library, your Node.js/Express application must have:
+* **Express** installed as a peer dependency.
+* **JSON Parsing Middleware** (`express.json()`) mounted before the gateway.
+* An active **JWT Token Secret** to decode and verify client identities.
 
-### 1. Register a new user (Public Route)
-```bash
-curl -X POST http://localhost:7001/api/auth/register \
--H "Content-Type: application/json" \
--d '{"username": "test_user", "password": "password123", "role": "admin"}'
+---
+
+## 3. Integration Code Example
+
+Create your gateway server (e.g., `gateway.js`) and mount the middleware as follows:
+
+```javascript
+const express = require('express');
+const { SecurityGateway } = require('secure-gateway-sdk');
+
+const app = express();
+
+// Required to parse JSON payloads for secure TEE channels
+app.use(express.json());
+
+// Initialize and mount the gateway router
+app.use('/api', SecurityGateway({
+    jwtSecret: process.env.JWT_SECRET || 'your_secret_signing_key',
+    routes: [
+        {
+            path: '/auth',
+            target: 'http://<auth-service-host>:<port>',
+            protected: false
+        },
+        {
+            path: '/enclave',
+            target: 'http://<enclave-service-host>:<port>',
+            protected: true,
+            requiredClearance: 'TS',
+            useSecureChannel: true,
+            mrenclave: 'YOUR_EXPECTED_MRENCLAVE_HASH',
+            blsPrivateKey: process.env.BLS_PRIVATE_KEY || 'your_bls_private_key',
+            auditUrl: 'http://<audit-service-host>:<port>',
+            actionName: 'SECURE_COMPUTE'
+        }
+    ],
+    rbacPolicies: {
+        admin: { resources: ['*'], actions: ['*'] },
+        user: { resources: ['/enclave'], actions: ['GET'] }
+    },
+    mlsLattice: {
+        'U': 10,
+        'S': 30,
+        'TS': 40
+    }
+}));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Security Gateway active on port ${PORT}`);
+});
 ```
 
-### 2. Login to get a JWT Token (Public Route)
-```bash
-curl -X POST http://localhost:7001/api/auth/login \
--H "Content-Type: application/json" \
--d '{"username": "test_user", "password": "password123"}'
-```
+---
 
-### 3. Access the Enclave (Protected Route - Success)
-Replace `<YOUR_TOKEN>` with the token string received from the login command.
-```bash
-curl -X GET http://localhost:7001/api/enclave \
--H "Authorization: Bearer <YOUR_TOKEN>"
-```
+## 4. Configuration Reference
 
-### 4. Access the Enclave (Protected Route - Failure)
-If you try to access the enclave without attaching the token header, the SDK will proactively block you.
-```bash
-curl -X GET http://localhost:7001/api/enclave
-```
+### SecurityGateway Options
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `jwtSecret` | String | Yes | Secret key used to verify client JWT signatures. |
+| `routes` | Array | Yes | List of route definitions to protect and proxy. |
+| `rbacPolicies` | Object | No | Map of roles to allowed resources and request methods. |
+| `mlsLattice` | Object | No | Clearance level hierarchy definitions (e.g., `U`, `S`, `TS`). |
+| `rateLimit` | Object | No | Custom intervals and maximum requests for the rate limiters. |
+
+### Route Object Schema
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `path` | String | Yes | Route mount path (e.g., `/enclave`). |
+| `target` | String | Yes | Microservice downstream target URL. |
+| `protected` | Boolean | Yes | Whether requests require JWT authentication and RBAC validation. |
+| `requiredClearance`| String | No | Level needed to pass Bell-LaPadula clearance validation. |
+| `useSecureChannel` | Boolean | No | Toggles automated TEE Handshake (ECDH key exchange). |
+| `mrenclave` | String | No | Expected hardware enclave hash identity. |
+| `blsPrivateKey` | String | No | Private key used to sign transaction aggregate proofs. |
+| `auditUrl` | String | No | Endpoint of the centralized Cryptographic Audit Log Service. |
+| `actionName` | String | No | Identifier label for the audited action type. |

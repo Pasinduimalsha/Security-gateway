@@ -50,6 +50,6 @@ app.use('/api', SecurityGateway({
   bls: { privateKey: config.bls.privateKey },
   routes: [
     { path: '/auth', target: `http://localhost:${PORT}/api/v1/users`, protected: false },
-    { path: '/enclave', target: `http://localhost:${process.env.ENCLAVE_PORT || 4000}`, protected: true, requiredClearance: 'S', useSecureChannel: true }
+    { path: '/enclave', target: `http://localhost:${process.env.ENCLAVE_PORT || 4000}`, protected: true, requiredClearance: 'TS', useSecureChannel: true }
   ]
 }));

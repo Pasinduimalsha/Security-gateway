@@ -112,70 +112,73 @@ function App() {
 
     try {
       if (scenario.custom === 'forged_token') {
-        addLog('Crafting forged JWT token...', 'warning');
-        addLog('Token: eyJhbGciOiJIUzI1NiJ9.FORGED_PAYLOAD.invalid_sig', '');
-        const res = await fetch(`${API_AUTH}/api/enclave`, {
+        addLog('⚡ [ATTACK DETECTED] Sending a forged JWT payload to the gateway...', 'warning');
+        addLog('🔑 Raw Forged Token: eyJhbGciOiJIUzI1NiJ9.FORGED_PAYLOAD.invalid_sig', 'system');
+        const res = await fetch(`${API_PROXY}/api/enclave`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYWNrZXIiLCJyb2xlIjoiYWRtaW4iLCJjbGVhcmFuY2UiOiJUUyJ9.invalid_signature' },
           body: JSON.stringify({ action: 'steal_data' })
         });
         const data = await res.json();
         if (res.status === 403 || res.status === 401) {
-          addLog(`BLOCKED (${res.status}): ${data.error}`, 'success');
+          addLog(`🛡️ [GATEWAY SHIELD ACTIVE] Request blocked successfully!`, 'success');
+          addLog(`🔴 STATUS ${res.status} (Forbidden) - ${data.error}`, 'success');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'blocked', code: res.status } }));
         } else {
-          addLog(`UNEXPECTED: Got ${res.status}`, 'error');
+          addLog(`⚠️ UNEXPECTED RESPONSE: Got ${res.status}`, 'error');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'failed' } }));
         }
       } else if (scenario.custom === 'no_token') {
-        addLog('Sending request with NO authorization header...', 'warning');
-        const res = await fetch(`${API_AUTH}/api/enclave`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'steal_data' }) });
+        addLog('⚡ [ATTACK DETECTED] Attempting direct Enclave access with NO authorization header...', 'warning');
+        const res = await fetch(`${API_PROXY}/api/enclave`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'steal_data' }) });
         const data = await res.json();
-        addLog(`BLOCKED (${res.status}): ${data.error}`, 'success');
+        addLog(`🛡️ [GATEWAY SHIELD ACTIVE] Missing credentials blocked!`, 'success');
+        addLog(`🔴 STATUS ${res.status} (Unauthorized) - ${data.error}`, 'success');
         setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'blocked', code: res.status } }));
       } else if (scenario.custom === 'expired_token') {
-        addLog('Crafting expired JWT (exp: 2020)...', 'warning');
-        const res = await fetch(`${API_AUTH}/api/enclave`, {
+        addLog('⚡ [ATTACK DETECTED] Performing a Session Replay Attack using an expired token (exp: 2020)...', 'warning');
+        const res = await fetch(`${API_PROXY}/api/enclave`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwicm9sZSI6ImFkbWluIiwiY2xlYXJhbmNlIjoiVFMiLCJleHAiOjE1Nzc4MzY4MDB9.invalid' },
           body: JSON.stringify({ action: 'replay_attack' })
         });
         const data = await res.json();
-        addLog(`BLOCKED (${res.status}): ${data.error || data.message}`, 'success');
+        addLog(`🛡️ [GATEWAY SHIELD ACTIVE] Replay attempt rejected!`, 'success');
+        addLog(`🔴 STATUS ${res.status} (Forbidden) - ${data.error || data.message}`, 'success');
         setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'blocked', code: res.status } }));
       } else if (scenario.custom === 'ddos') {
-        addLog('Launching 15 rapid requests to trigger rate limiter...', 'warning');
+        addLog('⚡ [ATTACK DETECTED] Launching DDoS Flood simulation (15 parallel requests)...', 'warning');
         let blocked = 0, ok = 0;
         const promises = Array.from({ length: 15 }, (_, i) =>
-          fetch(`${API_AUTH}/api/enclave`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+          fetch(`${API_PROXY}/api/enclave`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
             .then(r => { if (r.status === 429) blocked++; else ok++; return r.status; })
             .catch(() => { ok++; return 0; })
         );
         const results = await Promise.all(promises);
-        addLog(`Results: ${ok} passed, ${blocked} rate-limited (429)`, blocked > 0 ? 'success' : 'warning');
+        addLog(`📊 FLOOD RESULTS: ${ok} completed, ${blocked} rate-limited (429)`, blocked > 0 ? 'success' : 'warning');
         if (blocked > 0) {
-          addLog(`DDoS Protection ACTIVE: ${blocked} requests blocked!`, 'success');
+          addLog(`🛡️ [DDoS PROTECTION ACTIVE] Global rate-limiter blocked ${blocked} requests!`, 'success');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'blocked', code: 429, detail: `${blocked}/15 blocked` } }));
         } else {
-          addLog('Rate limiter did not trigger (limit may not be reached yet).', 'warning');
+          addLog('⚠️ DDoS Mitigation: Rate limiter did not trigger (under threshold).', 'warning');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'partial', detail: 'No 429 received' } }));
         }
       } else if (scenario.custom === 'brute_force') {
-        addLog('Launching 12 rapid login attempts (wrong password)...', 'warning');
+        addLog('⚡ [ATTACK DETECTED] Launching Login Brute Force simulation (12 rapid failures)...', 'warning');
         let blocked = 0;
         for (let i = 0; i < 12; i++) {
           try {
-            const res = await fetch(`${API_AUTH}/api/auth/login`, {
+            const res = await fetch(`${API_PROXY}/api/auth/login`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ username: 'victim', password: `wrong_${i}` })
             });
-            if (res.status === 429) { blocked++; addLog(`Attempt ${i + 1}: RATE LIMITED (429)`, 'success'); }
-            else addLog(`Attempt ${i + 1}: ${res.status}`, '');
-          } catch { addLog(`Attempt ${i + 1}: Network error`, 'error'); }
+            if (res.status === 429) { blocked++; addLog(`🔑 Attempt ${i + 1}: 🛡️ RATE LIMITED (429)`, 'success'); }
+            else addLog(`🔑 Attempt ${i + 1}: Failed login (STATUS ${res.status})`, 'system');
+          } catch { addLog(`🔑 Attempt ${i + 1}: Network/Proxy failure`, 'error'); }
         }
         if (blocked > 0) {
-          addLog(`Brute force protection ACTIVE: ${blocked} attempts blocked!`, 'success');
+          addLog(`🛡️ [AUTH MITIGATION ACTIVE] Brute-force protection blocked ${blocked} attempts!`, 'success');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'blocked', code: 429, detail: `${blocked}/12 blocked` } }));
         } else {
-          addLog('Auth rate limiter did not trigger yet.', 'warning');
+          addLog('⚠️ Brute-force Mitigation: Auth rate limiter did not trigger yet.', 'warning');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'partial' } }));
         }
       } else {
@@ -184,24 +187,30 @@ function App() {
         const password = 'password123';
 
         addLog(`Registering user: ${username} (role: ${scenario.role})...`, '');
-        const regRes = await fetch(`${API_AUTH}/api/auth/register`, {
+        const regRes = await fetch(`${API_PROXY}/api/auth/register`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password, role: scenario.role })
         });
         const regData = await regRes.json();
-        if (!regRes.ok) { addLog(`Registration: ${regData.error}`, 'error'); throw new Error(regData.error); }
-        addLog(`Registered. Clearance: ${regData.user?.clearanceLevel || scenario.role}`, 'success');
+        if (!regRes.ok) { addLog(`🔴 Registration Failed: ${regData.error}`, 'error'); throw new Error(regData.error); }
+        addLog(`🟢 Registered successfully. clearanceLevel: ${regData.user?.clearanceLevel || scenario.role}`, 'success');
 
-        addLog('Logging in to obtain JWT...', '');
-        const loginRes = await fetch(`${API_AUTH}/api/auth/login`, {
+        // Give MongoDB some time to complete index generation/writing
+        await new Promise(r => setTimeout(r, 500));
+
+        addLog('Logging in to retrieve secure JWT token...', '');
+        const loginRes = await fetch(`${API_PROXY}/api/auth/login`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
         const loginData = await loginRes.json();
         if (!loginRes.ok) throw new Error(loginData.error);
-        addLog('JWT obtained. Attempting Enclave access...', 'info');
+        addLog('🔑 JWT token generated. Attempting Enclave handshake...', 'info');
 
-        const enclaveRes = await fetch(`${API_AUTH}/api/enclave`, {
+        // Give the session/token validation system a tiny breather to synchronize state
+        await new Promise(r => setTimeout(r, 500));
+
+        const enclaveRes = await fetch(`${API_PROXY}/api/enclave`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${loginData.token}` },
           body: JSON.stringify({ action: 'SECURE_COMPUTE', data: 'Test Payload' })
@@ -212,16 +221,17 @@ function App() {
           const msg = enclaveData.error || 'Access denied';
           const isMLS = msg.includes('Bell-LaPadula') || msg.includes('MLS');
           const isRBAC = msg.includes('RBAC');
-          addLog(`BLOCKED (403): ${msg}`, scenario.expectSuccess ? 'error' : 'success');
-          addLog(`Security property enforced: ${isMLS ? 'MLS Bell-LaPadula' : isRBAC ? 'RBAC Policy' : 'Access Control'}`, 'info');
+          addLog(`🛡️ [SECURITY SHIELD ACTIVE] Request blocked!`, scenario.expectSuccess ? 'error' : 'success');
+          addLog(`🔴 STATUS 403 (Forbidden) - ${msg}`, scenario.expectSuccess ? 'error' : 'success');
+          addLog(`ℹ️ Security property enforced: ${isMLS ? 'MLS Bell-LaPadula (No-Read-Up)' : isRBAC ? 'RBAC Policy Rules' : 'Access Control'}`, 'info');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'blocked', code: 403 } }));
         } else if (enclaveRes.ok) {
-          addLog(`SUCCESS: ${enclaveData.processedData || JSON.stringify(enclaveData)}`, 'success');
-          addLog('Data was encrypted via AES-256-GCM in transit (Confidentiality ✓)', 'info');
-          addLog('Audit log entry signed with BLS (Non-Repudiation ✓)', 'info');
+          addLog(`🟢 SUCCESS: ${enclaveData.processedData || JSON.stringify(enclaveData)}`, 'success');
+          addLog('🔒 Cryptography: Transit encrypted via AES-256-GCM (Confidentiality ✓)', 'info');
+          addLog('📜 Integrity: Log entry signed with BLS aggregate signature (Non-Repudiation ✓)', 'info');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'success', code: 200 } }));
         } else {
-          addLog(`Response: ${enclaveRes.status} - ${enclaveData.error || 'Unknown'}`, 'warning');
+          addLog(`⚠️ Gate/Proxy responded: ${enclaveRes.status} - ${enclaveData.error || 'Unknown'}`, 'warning');
           setScenarioResults(prev => ({ ...prev, [scenario.id]: { status: 'failed', code: enclaveRes.status } }));
         }
       }
@@ -372,11 +382,22 @@ function App() {
           </h3>
           <div className="scenario-grid">
             {SCENARIOS.filter(s => s.type === 'normal').map(s => (
-              <div key={s.id} className="scenario-card normal">
-                <div className="scenario-title"><CheckCircle2 size={16} className="text-success" /> {s.title} {getResultBadge(s.id)}</div>
-                <p className="scenario-desc">{s.desc}</p>
-                <div>{s.properties.map(p => <span key={p} className="scenario-property text-success">● {p}</span>)}</div>
-                <button className="btn btn-success btn-sm" disabled={!!running} onClick={() => runScenario(s)}>
+              <div key={s.id} className={`scenario-card normal ${!s.expectSuccess ? 'violation-test' : ''}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', width: '100%' }}>
+                  <span className={`badge ${!s.expectSuccess ? 'badge-warning' : 'badge-success'}`} style={{ fontSize: '0.62rem', padding: '0.15rem 0.5rem', fontWeight: 700, letterSpacing: '0.03em' }}>
+                    {!s.expectSuccess ? 'Security Violation Test' : 'Authorized Flow'}
+                  </span>
+                  {getResultBadge(s.id)}
+                </div>
+                <div className="scenario-title" style={{ fontSize: '0.98rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                  <CheckCircle2 size={16} className="text-success" style={{ flexShrink: 0 }} />
+                  <span>{s.title}</span>
+                </div>
+                <p className="scenario-desc" style={{ flexGrow: 1, marginBottom: '1.25rem' }}>{s.desc}</p>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  {s.properties.map(p => <span key={p} className="scenario-property text-success">● {p}</span>)}
+                </div>
+                <button className="btn btn-success btn-sm" disabled={!!running} style={{ marginTop: 'auto', alignSelf: 'flex-start' }} onClick={() => runScenario(s)}>
                   {running === s.id ? 'Running...' : 'Run Scenario'}
                 </button>
               </div>
@@ -389,28 +410,50 @@ function App() {
           </h3>
           <div className="scenario-grid">
             {SCENARIOS.filter(s => s.type === 'attack').map(s => (
-              <div key={s.id} className="scenario-card attack">
-                <div className="scenario-title"><XCircle size={16} className="text-danger" /> {s.title} {getResultBadge(s.id)}</div>
-                <p className="scenario-desc">{s.desc}</p>
-                <div>{s.properties.map(p => <span key={p} className="scenario-property text-danger">● {p}</span>)}</div>
-                <button className="btn btn-danger btn-sm" disabled={!!running} onClick={() => runScenario(s)}>
+              <div key={s.id} className={`scenario-card attack ${!s.expectSuccess ? 'violation-test' : ''}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', width: '100%' }}>
+                  <span className="badge badge-danger" style={{ fontSize: '0.62rem', padding: '0.15rem 0.5rem', fontWeight: 700, letterSpacing: '0.03em' }}>
+                    Security Violation Test
+                  </span>
+                  {getResultBadge(s.id)}
+                </div>
+                <div className="scenario-title" style={{ fontSize: '0.98rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                  <XCircle size={16} className="text-danger" style={{ flexShrink: 0 }} />
+                  <span>{s.title}</span>
+                </div>
+                <p className="scenario-desc" style={{ flexGrow: 1, marginBottom: '1.25rem' }}>{s.desc}</p>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  {s.properties.map(p => <span key={p} className="scenario-property text-danger">● {p}</span>)}
+                </div>
+                <button className="btn btn-danger btn-sm" disabled={!!running} style={{ marginTop: 'auto', alignSelf: 'flex-start' }} onClick={() => runScenario(s)}>
                   {running === s.id ? 'Attacking...' : 'Launch Attack'}
                 </button>
               </div>
             ))}
           </div>
 
-          {/* Availability Scenarios */}
+          {/* Availability Attacks */}
           <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--warning)', margin: '1.5rem 0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileWarning size={14} /> Availability Attacks
           </h3>
           <div className="scenario-grid">
             {SCENARIOS.filter(s => s.type === 'availability').map(s => (
-              <div key={s.id} className="scenario-card availability">
-                <div className="scenario-title"><Zap size={16} className="text-warning" /> {s.title} {getResultBadge(s.id)}</div>
-                <p className="scenario-desc">{s.desc}</p>
-                <div>{s.properties.map(p => <span key={p} className="scenario-property text-warning">● {p}</span>)}</div>
-                <button className="btn btn-warning btn-sm" disabled={!!running} onClick={() => runScenario(s)}>
+              <div key={s.id} className={`scenario-card availability ${!s.expectSuccess ? 'violation-test' : ''}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', width: '100%' }}>
+                  <span className="badge badge-warning" style={{ fontSize: '0.62rem', padding: '0.15rem 0.5rem', fontWeight: 700, letterSpacing: '0.03em' }}>
+                    Security Violation Test
+                  </span>
+                  {getResultBadge(s.id)}
+                </div>
+                <div className="scenario-title" style={{ fontSize: '0.98rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                  <Zap size={16} className="text-warning" style={{ flexShrink: 0 }} />
+                  <span>{s.title}</span>
+                </div>
+                <p className="scenario-desc" style={{ flexGrow: 1, marginBottom: '1.25rem' }}>{s.desc}</p>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  {s.properties.map(p => <span key={p} className="scenario-property text-warning">● {p}</span>)}
+                </div>
+                <button className="btn btn-warning btn-sm" disabled={!!running} style={{ marginTop: 'auto', alignSelf: 'flex-start' }} onClick={() => runScenario(s)}>
                   {running === s.id ? 'Flooding...' : 'Launch Attack'}
                 </button>
               </div>

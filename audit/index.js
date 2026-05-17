@@ -1,3 +1,16 @@
+const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
+
+// Robust workspace-aware dotenv loading
+if (fs.existsSync(path.join(process.cwd(), '.env'))) {
+    dotenv.config({ path: path.join(process.cwd(), '.env') });
+} else if (fs.existsSync(path.join(process.cwd(), '..', '.env'))) {
+    dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
+} else {
+    dotenv.config();
+}
+
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');

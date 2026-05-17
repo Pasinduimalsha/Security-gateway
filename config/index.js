@@ -23,6 +23,6 @@ module.exports = {
     mrenclave: 'simulated_mrenclave_hash_12345'
   },
   bls: {
-    privateKey: 'simulated_bls_private_key'
+    privateKey: process.env.BLS_PRIVATE_KEY || 'simulated_bls_private_key_99999'
   }
 };
