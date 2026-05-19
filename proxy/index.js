@@ -1,4 +1,5 @@
 const express = require('express');
+const fetch = require('node-fetch');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { createSecurityMiddleware } = require('./middleware/security');
 const { createMLSMiddleware } = require('./middleware/mls');

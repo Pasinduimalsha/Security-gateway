@@ -10,7 +10,8 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "http-proxy-middleware": "^3.0.5",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "node-fetch": "^2.7.0"
   },
   "description": "This package is a drop-in API Gateway library designed to secure and route traffic to a microservice ecosystem containing Auth, Enclave, and Audit endpoints.",
   "main": "index.js",

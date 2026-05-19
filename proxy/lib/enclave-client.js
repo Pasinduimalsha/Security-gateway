@@ -1,5 +1,6 @@
 const { SecureChannel } = require('./crypto');
 const crypto = require('crypto');
+const fetch = require('node-fetch');
 
 /**
  * EnclaveClient acts as the secure intermediary between the Proxy and the TEE.
