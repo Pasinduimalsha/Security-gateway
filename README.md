@@ -24,7 +24,7 @@ A secure communication middleware between two untrusted parties over a network, 
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│                    Security Gateway (Proxy :3000)               │
+│                    Security Gateway (Proxy :<PROXY_PORT>)       │
 │                                                                │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
 │  │   JWT     │→ │   RBAC   │→ │Bell-     │→ │ ECDH + AES-   │  │
@@ -38,10 +38,10 @@ A secure communication middleware between two untrusted parties over a network, 
               ┌───────────────────────────────────────┼──────┐
               │                                       ▼      │
    ┌──────────┴──┐    ┌──────────────┐    ┌─────────────────┐│
-   │ Auth :7001  │    │ Enclave :4000│    │  Audit :5001    ││
+   │ Auth :<AUTH_PORT> │    │ Enclave :<ENCLAVE_PORT> │    │ Audit :<AUDIT_PORT> ││
    │ (MongoDB)   │    │ (TEE Sim)    │    │  (BLS Verify)   ││
    └─────────────┘    └──────────────┘    └─────────────────┘│
-              │           Dashboard :6001 (React Monitor)     │
+              │           Dashboard :<DASHBOARD_PORT> (React Monitor) │
               └───────────────────────────────────────────────┘
 ```
 
@@ -49,12 +49,12 @@ The project uses an **npm workspace monorepo** with 5 microservices:
 
 | Service | Port | Purpose |
 |:--------|:-----|:--------|
-| **Proxy** | 3000 | Core Security Gateway — routes all traffic through security middleware |
-| **Enclave** | 4000 | Simulated Trusted Execution Environment (Intel SGX / ARM CCA) |
-| **Audit** | 5001 | Immutable audit log with BLS aggregate signature verification |
-| **Dashboard** | 6001 | React monitoring UI with attack simulation capabilities |
-| **Auth** | 7001 | User registration, login, JWT issuance (MongoDB) |
-| **Swagger Docs** | 8000 | Interactive API documentation |
+| **Proxy** | `<PROXY_PORT>` | Core Security Gateway — routes all traffic through security middleware |
+| **Enclave** | `<ENCLAVE_PORT>` | Simulated Trusted Execution Environment (Intel SGX / ARM CCA) |
+| **Audit** | `<AUDIT_PORT>` | Immutable audit log with BLS aggregate signature verification |
+| **Dashboard** | `<DASHBOARD_PORT>` | React monitoring UI with attack simulation capabilities |
+| **Auth** | `<AUTH_PORT>` | User registration, login, JWT issuance (MongoDB) |
+| **Swagger Docs** | `<DOCS_PORT>` | Interactive API documentation |
 
 ---
 
@@ -63,7 +63,7 @@ The project uses an **npm workspace monorepo** with 5 microservices:
 ### Prerequisites
 
 - **Node.js** v18 or higher
-- **MongoDB** running locally on port 27017
+- **MongoDB** running locally on port `<MONGO_PORT>`
 
 ### Step 1: Clone the Repository
 
@@ -90,25 +90,25 @@ Or create it manually with these values:
 
 ```env
 # JWT Configuration
-JWT_SECRET=your_jwt_secret_here
+JWT_SECRET=<YOUR_JWT_SECRET>
 JWT_EXPIRES=1h
 
 # Port Configurations
-AUTH_PORT=7001
-PROXY_PORT=3000
-ENCLAVE_PORT=4000
-AUDIT_PORT=5001
+AUTH_PORT=<AUTH_PORT>
+PROXY_PORT=<PROXY_PORT>
+ENCLAVE_PORT=<ENCLAVE_PORT>
+AUDIT_PORT=<AUDIT_PORT>
 
 # Database
-MONGO_URI=mongodb://localhost:27017/security-gateway
+MONGO_URI=mongodb://localhost:<MONGO_PORT>/<DB_NAME>
 
 # Development Flags
 NODE_ENV=development
 USE_LOCAL_SDK=true
 
 # Security Parameters
-ENCLAVE_MRENCLAVE=simulated_mrenclave_hash_12345
-BLS_PRIVATE_KEY=simulated_bls_private_key_99999
+ENCLAVE_MRENCLAVE=<ENCLAVE_MRENCLAVE_HASH>
+BLS_PRIVATE_KEY=<BLS_PRIVATE_KEY>
 ENCLAVE_CLASSIFICATION=TS
 ```
 
@@ -135,17 +135,17 @@ npm run dev
 You should see color-coded output for each service:
 
 ```
-[PROXY]     Standalone Gateway running on port 3000
-[ENCLAVE]   Secured Service running on port 4000
-[AUDIT]     Service running on port 5001
-[AUTH]      Server is running on port 7001
-[DASHBOARD] VITE ready — http://localhost:6001/
-[DOCS]      Swagger UI — http://localhost:8000/api-docs
+[PROXY]     Standalone Gateway running on port <PROXY_PORT>
+[ENCLAVE]   Secured Service running on port <ENCLAVE_PORT>
+[AUDIT]     Service running on port <AUDIT_PORT>
+[AUTH]      Server is running on port <AUTH_PORT>
+[DASHBOARD] VITE ready — http://localhost:<DASHBOARD_PORT>/
+[DOCS]      Swagger UI — http://localhost:<DOCS_PORT>/api-docs
 ```
 
 ### Step 6: Open the Dashboard
 
-Navigate to **[http://localhost:6001](http://localhost:6001)** in your browser.
+Navigate to **[http://localhost:<DASHBOARD_PORT>](http://localhost:<DASHBOARD_PORT>)** in your browser.
 
 ---
 
@@ -222,26 +222,26 @@ app.use('/api', SecurityGateway({
 
 ```bash
 # 1. Register an admin user
-curl -X POST http://localhost:7001/api/auth/register \
+curl -X POST http://localhost:<AUTH_PORT>/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"admin1","password":"pass123","role":"admin"}'
 
 # 2. Login and get JWT token
-curl -X POST http://localhost:7001/api/auth/login \
+curl -X POST http://localhost:<AUTH_PORT>/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin1","password":"pass123"}'
 
 # 3. Access the Enclave (paste your token)
-curl -X POST http://localhost:7001/api/enclave \
+curl -X POST http://localhost:<PROXY_PORT>/api/enclave \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <YOUR_JWT_TOKEN>" \
   -d '{"action":"SECURE_COMPUTE"}'
 
 # 4. Check audit logs
-curl http://localhost:5001/logs
+curl http://localhost:<AUDIT_PORT>/logs
 
 # 5. Verify audit integrity
-curl http://localhost:5001/verify
+curl http://localhost:<AUDIT_PORT>/verify
 ```
 
 ---
